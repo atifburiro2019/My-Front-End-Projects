@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Functions with Key Lookup</title>
+  <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+  <style>
+    body {
+      background: #eee;
+      font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      color: #000;
+      margin: 0;
+      padding: 0;
+    }
+
+    .swiper {
+      display: flex;
+      justify-content: center;
+    }
+
+    #users-list {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 10px;
+      border-radius: 20px;
+      gap: 5px;
+      background: #fff;
+      border: 1px solid #ccc;
+      letter-spacing: 1px;
+      font-weight: bold;
+      width: 23%;
+      min-width: 240px;
+    }
+
+    .card img {
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+    }
+
+    .card div {
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 15px;
+      color: #0052cc;
+    }
+
+    .search-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      font-size: 14px;
+      border-bottom: 3px solid #DF8E00;
+      transition: 0.2s ease-out;
+      width: 100%;
+      max-width: 280px;
+      padding: 10px 15px;
+      outline: none;
+      background-color: rgba(255, 255, 255, 0.6);
+      border-radius: 16px 0px 16px 0px;
+    }
+
+    input:focus {
+      background-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .swiper {
+      width: 100%;
+      height: 100%;
+    }
+
+    .swiper-slide {
+      text-align: center;
+      font-size: 18px;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .swiper-slide img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="search-container">
+    <input type="text" class="search-input" placeholder="Search by name">
+    <button class="search-toggle">Search</button>
+  </div>
+
+  <div id="users-list"></div>
+
+  <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+  <script>
+    async function init() {
+      const usersResponse = await fetch("https://jsonplaceholder.typicode.com/users");
+      const users = await usersResponse.json();
+
+      const albumsResponse = await fetch("https://jsonplaceholder.typicode.com/albums");
+      const albums = await albumsResponse.json();
+
+      const photosResponse = await fetch("https://jsonplaceholder.typicode.com/photos");
+      const photos = await photosResponse.json();
+
+      const usersMap = users.reduce((map, user) => {
+        map[user.id] = user;
+        return map;
+      }, {});
+
+      const albumsMap = albums.reduce((map, album) => {
+        map[album.id] = album;
+        return map;
+      }, {});
+
+      const photosMap = photos.reduce((map, photo) => {
+        map[photo.id] = photo;
+        return map;
+      }, {});
+
+      const usersList = document.querySelector("#users-list");
+      const searchInput = document.querySelector(".search-input");
+      const searchToggle = document.querySelector(".search-toggle");
+
+      const swiperOptions = {
+        navigation: {
+          nextEl: ".swiper-button-next",
+          prevEl: ".swiper-button-prev",
+        },
+      };
+
+      function renderUsers(usersById) {
+        usersList.innerHTML = "";
+        usersById.forEach((userId) => {
+          const user = usersMap[userId];
+          const userAlbums = [];
+          Object.values(albumsMap).forEach((album) => {
+            if (album.userId === user.id) {
+              userAlbums.push(album);
+            }
+          });
+
+          const userPhotos = [];
+          Object.values(photosMap).forEach((photo) => {
+            userAlbums.forEach((album) => {
+              if (photo.albumId === album.id) {
+                userPhotos.push(photo);
+              }
+            });
+          });
+
+          if (userPhotos.length > 0) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+
+            const swiperContainer = document.createElement('div');
+            swiperContainer.className = 'swiper';
+            card.appendChild(swiperContainer);
+
+            const swiperWrapper = document.createElement('div');
+            swiperWrapper.className = 'swiper-wrapper';
+            swiperContainer.appendChild(swiperWrapper);
+            const swiperNext = document.createElement('div');
+            swiperNext.className = 'swiper-button-next';
+            swiperContainer.appendChild(swiperNext);
+
+            const swiperPrevious = document.createElement('div');
+            swiperPrevious.className = 'swiper-button-prev';
+            swiperContainer.appendChild(swiperPrevious);
+
+            userPhotos.forEach((photo) => {
+              const swiperSlide = document.createElement('div');
+              swiperSlide.className = 'swiper-slide';
+              swiperWrapper.appendChild(swiperSlide);
+
+              const thumbnailElement = document.createElement('img');
+              thumbnailElement.src = photo.url;
+              swiperSlide.appendChild(thumbnailElement);
+            });
+
+            const albumTitleElement = document.createElement('div');
+            albumTitleElement.textContent = `Album Title: ${userAlbums[0].title}`;
+            card.appendChild(albumTitleElement);
+
+            const nameElement = document.createElement('div');
+            nameElement.textContent = `Name: ${user.name}`;
+            card.appendChild(nameElement);
+
+            const emailElement = document.createElement('div');
+            emailElement.textContent = `Email: ${user.email}`;
+            card.appendChild(emailElement);
+
+            usersList.appendChild(card);
+
+            const swiper = new Swiper(swiperContainer, swiperOptions);
+          }
+        });
+      }
+
+      searchToggle.addEventListener('click', () => {
+        const searchTerms = searchInput.value.trim();
+
+        if (searchTerms !== "") {
+          const filteredUserIds = Object.keys(usersMap).filter((userId) => {
+            const user = usersMap[userId];
+            return user.name.toLowerCase().includes(searchTerms.toLowerCase());
+          });
+          renderUsers(filteredUserIds);
+        } else {
+          const allUserIds = Object.keys(usersMap);
+          renderUsers(allUserIds);
+        }
+      });
+      searchInput.addEventListener('input', () => {
+        const searchTerms = searchInput.value.trim();
+
+        if (searchTerms === "") {
+          const allUserIds = Object.keys(usersMap);
+          renderUsers(allUserIds);
+        }
+      });
+
+      const allUserIds = Object.keys(usersMap);
+      renderUsers(allUserIds);
+    }
+
+    init();
+
+  </script>
+</body>
+
+</html>
